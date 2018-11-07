@@ -4,9 +4,10 @@ ddd=$dd/_host.d
 ee=$d/nocrit.d
 eee=$ee/_sh.d
 ff=$d/with-name_host_pm_sh.d
-fff=$ff/named.again_is-root.d
+fff=$ff/named.again_root.d
 gg=$d/_os.d
-mkdir -p "$ddd" "$eee" "$fff" "$gg"
+ggg=$gg/_remote_root_sudo.d
+mkdir -p "$ddd" "$eee" "$fff" "$ggg"
 
 yes=(
     $d/_ubuntu.sh
@@ -18,6 +19,7 @@ yes=(
     $fff/'name#!_ubuntu_sefidos_apt_bash_user.sh'
     $fff/'name#!_ubuntu_sefidos__bash_.sh'
     $gg/_ubuntu_~.sh
+    $ggg/_gentoo,ubuntu,kali__local_user_sudo,nosudo.sh
 )
 
 no=(

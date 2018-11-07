@@ -1,5 +1,5 @@
 class Env:
-    __slots__ = "root os pm dist sh host isRemote isRoot isSudo".split()
+    __slots__ = "rootDir os pm dist sh host remote root sudo".split()
     __slots__.extend("setenv".split())
 
     def propertyList(self, pnameList=None):
@@ -16,6 +16,13 @@ def getenv(sh=None):
     import socket
     import sys
 
+    def whichFirst(nameList, default):
+        from distutils.spawn import find_executable as which
+        for x in map(which, nameList):
+            if x is not None:
+                yield x
+        yield default
+
     def getos():
         return {
             "linux2": "linux",
@@ -23,6 +30,10 @@ def getenv(sh=None):
             "win32": "windows"
         }.get(sys.platform, sys.platform)
         # return re.match("[a-zA-Z]+", sys.platform)
+
+    def getpm():
+        from os.path import split
+        return split(next(whichFirst("apt yum pacman emerge zypper".split(), "other")))[-1]
 
     def getdist():
         try:
@@ -45,7 +56,10 @@ def getenv(sh=None):
             return f.read().strip()
 
     def getsh(ppname):
-        return re.sub("^-", "", ppname)
+        name = re.sub("^-", "", ppname)
+        if name == "sh":
+            name = "dash"
+        return name
 
     def getissudo():
         import pwd
@@ -65,35 +79,36 @@ def getenv(sh=None):
 
     e = Env()
 
-    e.root = os.path.dirname(__file__)
+    e.rootDir = os.path.dirname(__file__)
 
     e.os = getos().lower()
-    e.pm = None
+    e.pm = getpm()
     e.dist = getdist().lower()
     e.sh = (sh or getsh(ppname)).lower()
     e.host = socket.gethostname().lower()
-    e.isRemote = "remote" if (
+    e.remote = "remote" if (
         "SSH_CLIENT" in ekeys or
         "SSH_TTY" in ekeys or
         "SSH_CONNECTION" in ekeys or
         ppname == "sshd"
     ) else "local"
-    e.isRoot = "root" if (os.geteuid() == 0) else "user"
-    e.isSudo = "sudo" if getissudo() else "nosudo"
+    e.root = "root" if (os.geteuid() == 0) else "user"
+    e.sudo = "sudo" if getissudo() else "nosudo"
 
     def l(**kwargs):
         for key, val in kwargs.items():
             return "sc_%s='%s'\n" % (key, val)
 
     e.setenv = "".join((
-        l(root=e.root),
+        l(rootDir=e.rootDir),
         l(os=e.os),
+        l(pm=e.pm),
         l(dist=e.dist),
         l(sh=e.sh),
         l(host=e.host),
-        l(is_remote=e.isRemote),
-        l(is_root=e.isRoot),
-        l(is_sudo=e.isSudo)
+        l(remote=e.remote),
+        l(root=e.root),
+        l(sudo=e.sudo)
     ))
 
     return e

@@ -15,7 +15,7 @@ sys.stdout.write(env.setenv)
 
 sourcing = sourcing.sourcing(
     env=env,
-    selectable=join(env.root, "selectable")
+    selectable=join(env.rootDir, "selectable")
 )
 
 sys.stdout.write(sourcing)

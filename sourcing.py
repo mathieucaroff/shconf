@@ -48,16 +48,21 @@ def critify(slot):
     return crit
 
 
-def addCriteria(env, slotList, criteria):
+def addCriteria(env, slotList, ff, criteria):
     """Make crit from slot, return an extended criteria list after checkings"""
     newCriteria = criteria[:]
     for slot in slotList:
         crit = critify(slot)
-        assert crit not in criteria,\
-            "Crit `%s` appears twice in the chain" % crit
-        assert crit in env.__slots__,\
-            "Crit `%s` is invalid" % crit
-        newCriteria.append(crit)
+        if (crit in criteria):
+            msg = "The criterion `{}` appears twice in the chain `{}`\n"
+            sys.stderr.write(msg.format(crit, ff))
+        elif (crit not in env.__slots__):
+            msg = "The criterion `{}`, in your directory `{}` is invalid\n"
+            sys.stderr.write(msg.format(crit, ff))
+        else:
+            newCriteria.append(crit)
+            continue
+        raise ValueError("Bad criterion")
     return newCriteria
 
 
@@ -90,7 +95,10 @@ def walk(env, dirpath, criteria):
             m = re.match(SH_DIR_REGEX, f)
             if m:
                 slotList = splitPattern(m.group(2))
-                ff_criteria = addCriteria(env, slotList, criteria)
+                try:
+                    ff_criteria = addCriteria(env, slotList, ff, criteria)
+                except ValueError:
+                    continue # i.e. do not walk into that directory.
                 #print("willExtend with:\n:ff: %s\n:ff_cr: %s" % (ff, ff_criteria))
                 for e in walk(env, ff, ff_criteria):
                     yield e
@@ -167,14 +175,24 @@ def examine(env, wellNamedList, propertyIndex):
             yield wellNamedEntry.filepath
 
 
+def sortkey(path):
+    from os.path import split
+
+    partList = split(path)
+    numericList = []
+    for part in partList:
+        num = re.match(r"(\d*)", part).group(1)
+        if num:
+            numericList.append(num)
+    numericList.append(partList[-1])
+    return numericList
+
+
 def sourcing(env, selectable):
-
-    from os.path import join, split
-
     wellNamedList = list(walk(env, selectable, []))
     propertyIndex = index(wellNamedList)
     willSource = list(examine(env, wellNamedList, propertyIndex))
-    willSource.sort(key = lambda path: split(path)[-1])
+    willSource.sort(key = sortkey)
 
     sourcePattern = "source %s\n"
     if env.sh == "dash":

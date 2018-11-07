@@ -44,15 +44,6 @@ assert testSet & noSet == set(), "testSet & noSet: %s" % (testSet & noSet)
 
 print("1 test OK")
 
-# try:
-#     sys.stdout.close()
-# except:
-#     pass
-# try:
-#     sys.stderr.close()
-# except:
-#     pass
-
 HereDocumentDelimiter
 
 python "$dir"/selector-test.py "$tmpdir" \
