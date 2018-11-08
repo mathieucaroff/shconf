@@ -1,1 +1,1 @@
-rm "$dir"/selector-test.py
+rm "$sc_root_dir"/selector-test.py

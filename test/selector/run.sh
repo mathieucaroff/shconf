@@ -46,5 +46,5 @@ print("1 test OK")
 
 HereDocumentDelimiter
 
-python "$dir"/selector-test.py "$tmpdir" \
-| python <(echo "${check_py}")
+python "$sc_root_dir"/selector-test.py "$tmpdir" \
+| python <(echo "${check_py}") | sed s:"$tmpdir":'$t':g

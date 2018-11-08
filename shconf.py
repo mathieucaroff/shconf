@@ -9,13 +9,17 @@ sh = None
 if len(sys.argv) > 1:
     sh = sys.argv[1]
 
+selectable = "selectable"
+if len(sys.argv) > 2:
+    selectable = sys.argv[2]
+
 env = getenv.getenv(sh)
 
 sys.stdout.write(env.setenv)
 
 sourcing = sourcing.sourcing(
     env=env,
-    selectable=join(env.rootDir, "selectable")
+    selectable=join(env.rootDir, selectable)
 )
 
 sys.stdout.write(sourcing)

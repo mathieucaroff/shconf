@@ -7,7 +7,7 @@ class Env(getenv.Env):
 
 e = Env()
 
-e.root = ""
+e.rootDir = ""
 e.setenv = ""
 
 e.os = "linux"
@@ -18,6 +18,7 @@ e.host = "sefidos"
 e.remote = "local"
 e.root = "user"
 e.sudo = "sudo"
+e.init = "init"
 
 selectable = sys.argv[1]
 

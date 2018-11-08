@@ -13,6 +13,12 @@ SH_DIR_REGEX  = r'^([^_]*)?((_[^_]*)*)\.d$'.replace(
 PATTERN_ANY_VALUE = ""
 PATTERN_OTHER_VALUE = "~"
 
+EXPAND_ALTERNATIVE = {
+    "zbash": "zsh bash".split(),
+    "dbash": "dash bash".split(),
+    "zdbash": "zsh dash bash".split(),
+}
+
 callId = 0
 
 def logging(f):
@@ -20,12 +26,12 @@ def logging(f):
         global callId
         c = callId
         callId += 1
-        print("%s%s%s:" % (f.__name__, c, str(args[1:])))
+        print("/\\%s%s%s:" % (f.__name__, c, str(args)))
         # print("kwargs(%s):" % c)
         # print(kwargs)
         ret = f(*args, **kwargs)
-        print("%s(%s):" % (f.__name__, c))
-        pprint(ret)
+        print("\\/%s%s" % (f.__name__, c))
+        # pprint(ret)
         return ret
     return wrap
 
@@ -70,8 +76,8 @@ def checkMakeWellNamedEntry(f, ff, criteria):
     m = re.match(SH_FILE_REGEX, f)
     if m:
         slotList = splitPattern(m.group(2))
-        if len(slotList) == len(criteria):
-            wellNamedEntry = WellNamed(ff, slotList, criteria or None)
+        if len(slotList) == len(criteria) or criteria == []:
+            wellNamedEntry = WellNamed(ff, slotList, criteria)
             return wellNamedEntry
 
 WellNamed = namedtuple("WellNamed", "filepath slotList criteria")
@@ -104,13 +110,12 @@ def walk(env, dirpath, criteria):
                     yield e
 
 
-def alternativeIteratorFromSlot(slot):
+def alternativeFromSlot(slot):
     alternativeList = slot.split(PATTERN_ALTERNATIVE_SEPARATOR)
 
     for alt in alternativeList:
-        if alt == "bzsh":
-            alt = 'bash'
-            alternativeList.append("zsh")
+        if alt in EXPAND_ALTERNATIVE:
+            alternativeList.extend(EXPAND_ALTERNATIVE[alt])
         yield alt
 
 
@@ -119,7 +124,7 @@ def index(wellNamedList):
     for filepath, slotList, criteria in wellNamedList:
         if criteria is not None:
             for crit, slotVal in zip(criteria, slotList):
-                for alt in alternativeIteratorFromSlot(slotVal):
+                for alt in alternativeFromSlot(slotVal):
                     propertyIndex.setdefault(crit, set()).add(alt)
     return propertyIndex
 
@@ -128,17 +133,33 @@ def validate(env, wellNamedEntry, propertyIndex):
     """ Checks whether a pattern matches the environement """
 
     wne = wellNamedEntry
-    propertyList = env.propertyList(wne.criteria)
-    #print("cr: %s, propertyList: %s" % (str(criteria), str(propertyList)))
-
-    # Already checked before wne creation
-    # if len(wne.slotList) != len(propertyList):
-    #     ok = False
-    #     return ok
-
     criteria = wne.criteria
-    if criteria is None:
-        criteria = [None] * len(propertyList)
+
+    # /\ case unbound
+    unbound = len(criteria) == 0
+    propertyList = unbound and env.fullPropertyList()
+    # print("sv: %s" % wne.slotList)
+    for slotVal in unbound * wne.slotList:
+        if slotVal in (PATTERN_OTHER_VALUE, PATTERN_ANY_VALUE):
+            msg = """
+Found `%s` in file `%s` but this is useless because there are no corresponding \
+criterion. You should remove the string `%s` from the file name. Cautiously not\
+sourcing that file.
+"""[1:]
+            toRemove = PATTERN_SLOT_SEPARATOR + slotVal
+            sys.stderr.write(msg % (slotVal, wne.filepath, toRemove))
+            return False
+
+        if not any(alt in propertyList for alt in alternativeFromSlot(slotVal)):
+            return False
+    if unbound:
+        return True
+    # \/ case unbound
+
+
+    # /\ case bound
+    propertyList = env.selectPropertyList(wne.criteria)
+    #print("cr: %s, propertyList: %s" % (str(criteria), str(propertyList)))
 
     for slotVal, propVal, crit in zip(wne.slotList, propertyList, criteria):
         if slotVal == PATTERN_ANY_VALUE:
@@ -146,27 +167,14 @@ def validate(env, wellNamedEntry, propertyIndex):
             # we don't need to match anything.
             continue
 
-        POV = PATTERN_OTHER_VALUE
-        if slotVal == POV:
-            if wne.criteria is None:
-                msg = """
-Found `%s` in file `%s` but this is useless because there are no corresponding \
-criterion. You should remove the string `%s` from the file name. Cautiously not\
- sourcing the file."""[1:]
-                SLOT_OV = PATTERN_SLOT_SEPARATOR + POV
-                sys.stderr.write(msg % (POV, wne.filepath, SLOT_OV))
-                return False
+        if slotVal == PATTERN_OTHER_VALUE:
             knownValSet = propertyIndex[crit]
             if propVal not in knownValSet:
                 continue
-
-        for alt in alternativeIteratorFromSlot(slotVal):
-            if alt == propVal or wne.criteria is None and alt in propertyList:
-                break # Match! This property validates
-        else:
-            # If for didn't break, it means we didn't find a match
+        if not any(alt == propVal for alt in alternativeFromSlot(slotVal)):
             return False
     return True
+    # \/ case bound
 
 
 def examine(env, wellNamedList, propertyIndex):
@@ -176,9 +184,9 @@ def examine(env, wellNamedList, propertyIndex):
 
 
 def sortkey(path):
-    from os.path import split
+    from os.path import sep
 
-    partList = split(path)
+    partList = path.split(sep)
     numericList = []
     for part in partList:
         num = re.match(r"(\d*)", part).group(1)

@@ -1,13 +1,14 @@
 class Env:
-    __slots__ = "rootDir os pm dist sh host remote root sudo".split()
+    __slots__ = "rootDir os pm dist sh host remote root sudo init".split()
     __slots__.extend("setenv".split())
 
-    def propertyList(self, pnameList=None):
-        if pnameList is None:
-            pnameList = Env.__slots__
+    def selectPropertyList(self, pnameList):
         return tuple(
             getattr(self, propname) for propname in pnameList
         )
+    
+    def fullPropertyList(self):
+        return self.selectPropertyList(self.__slots__)
 
 
 def getenv(sh=None):
@@ -16,12 +17,11 @@ def getenv(sh=None):
     import socket
     import sys
 
-    def whichFirst(nameList, default):
+    def whichFirst(nameList):
         from distutils.spawn import find_executable as which
         for x in map(which, nameList):
             if x is not None:
                 yield x
-        yield default
 
     def getos():
         return {
@@ -32,8 +32,8 @@ def getenv(sh=None):
         # return re.match("[a-zA-Z]+", sys.platform)
 
     def getpm():
-        from os.path import split
-        return split(next(whichFirst("apt yum pacman emerge zypper".split(), "other")))[-1]
+        from os.path import basename
+        return basename(next(whichFirst("apt yum pacman emerge zypper".split()), "other"))
 
     def getdist():
         try:
@@ -61,7 +61,7 @@ def getenv(sh=None):
             name = "dash"
         return name
 
-    def getissudo():
+    def getsudo():
         import pwd
         user = pwd.getpwuid(os.getuid()).pw_name
         try:
@@ -93,11 +93,19 @@ def getenv(sh=None):
         ppname == "sshd"
     ) else "local"
     e.root = "root" if (os.geteuid() == 0) else "user"
-    e.sudo = "sudo" if getissudo() else "nosudo"
+    e.sudo = "sudo" if getsudo() else "nosudo"
+    e.init = "noinit" if "sc_init" in os.environ.keys() else "init"
 
-    def l(**kwargs):
+    def l(export=False, **kwargs):
+        if export:
+            if e.sh[-3:] == "csh":
+                fmt = "setenv sc_%s '%s'\n"
+            else:
+                fmt = "export sc_%s='%s'\n"
+        else:
+            fmt = "sc_%s='%s'\n"
         for key, val in kwargs.items():
-            return "sc_%s='%s'\n" % (key, val)
+            return fmt % (key, val)
 
     e.setenv = "".join((
         l(rootDir=e.rootDir),
@@ -108,7 +116,8 @@ def getenv(sh=None):
         l(host=e.host),
         l(remote=e.remote),
         l(root=e.root),
-        l(sudo=e.sudo)
+        l(sudo=e.sudo),
+        l(init=e.init, export=True),
     ))
 
     return e
