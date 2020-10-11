@@ -1,0 +1,7 @@
+*
+!/.gitignore
+!/CC0-LICENSE.md
+!/README.md
+!/getenv.py
+!/shconf.py
+!/sourcing.py
