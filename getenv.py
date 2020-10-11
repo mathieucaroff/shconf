@@ -13,15 +13,19 @@ class Env:
 
 def getenv(sh=None):
     import re
-    import os as os
+    import os
     import socket
     import sys
 
     def whichFirst(nameList):
         from distutils.spawn import find_executable as which
-        for x in map(which, nameList):
-            if x is not None:
-                yield x
+        os.environ.setdefault("PATH",
+            "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        )
+        for name in nameList:
+            path = which(name)
+            if path is not None:
+                yield path
 
     def getos():
         return {
@@ -96,28 +100,31 @@ def getenv(sh=None):
     e.sudo = "sudo" if getsudo() else "nosudo"
     e.init = "noinit" if "sc_init" in os.environ.keys() else "init"
 
-    def l(export=False, **kwargs):
+    def gen(export=False, **kwargs):
         if export:
             if e.sh[-3:] == "csh":
-                fmt = "setenv sc_%s '%s'\n"
+                fmt = "setenv sc_{key} '{value}'\n"
             else:
-                fmt = "export sc_%s='%s'\n"
+                fmt = "export sc_{key}='{value}'\n"
         else:
-            fmt = "sc_%s='%s'\n"
-        for key, val in kwargs.items():
-            return fmt % (key, val)
+            fmt = "sc_{key}='{value}'\n"
+        key, value = list(kwargs.items())[0]
+        return fmt.format(
+            key=key,
+            value=value,
+        )
 
     e.setenv = "".join((
-        l(rootDir=e.rootDir),
-        l(os=e.os),
-        l(pm=e.pm),
-        l(dist=e.dist),
-        l(sh=e.sh),
-        l(host=e.host),
-        l(remote=e.remote),
-        l(root=e.root),
-        l(sudo=e.sudo),
-        l(init=e.init, export=True),
+        gen(rootDir=e.rootDir),
+        gen(os=e.os),
+        gen(pm=e.pm),
+        gen(dist=e.dist),
+        gen(sh=e.sh),
+        gen(host=e.host),
+        gen(remote=e.remote),
+        gen(root=e.root),
+        gen(sudo=e.sudo),
+        gen(init=e.init, export=True),
     ))
 
     return e

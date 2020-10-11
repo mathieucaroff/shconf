@@ -27,9 +27,9 @@ echo '<(python ~/.sc/shconf.py zsh)' >> ~/.zshrc
 
 `shconf` fundamentaly does two things:
 
-* It provides 8 variables about the device you are running on and the session.
-  You can use those variables in your shell
-* It sources the filess in `selectable/` according to those variable values.
+- It provides 8 variables about the device you are running on and the session.
+  You can use those variables in your shell. /!\ These variables are not exported /!\ (unless _you_ export them {`sc_init` is an exception, it is exported})
+- It sources the files in `selectable/` according to those variable values.
 
 ## The 8 variables
 
@@ -72,19 +72,19 @@ The `_` is a special character. It is the criterion perfix in directory names,
 as well as the match value prefix in file names. In a filename, the criterion or
 match value spans form the character `_` to one of:
 
-* the next character `_` (which must me announcing another criterion / value)
-* the final `.` of `.d` or of `.sh`.
+- the next character `_` (which must me announcing another criterion / value)
+- the final `.` of `.d` or of `.sh`.
 
 A criterion (in directory names), is one of the 8 variable names, without `sc_`.
 
 A match value (in a file name), is one of:
 
-* A single accepted value for the variable corresponding to the criterion.
+- A single accepted value for the variable corresponding to the criterion.
   For instance `bash` for the criterion `sh` or `linux` for `os`.
-* A comma-separated list of accepted values for the criterion variable.
+- A comma-separated list of accepted values for the criterion variable.
   For instance `dash,bash,zsh` for `sh` or `apt,yum` for `pm`.
-* An empty value ``. This will match any value of teh crieterion variable.
-* The special value "unknown" `~`. This matches any value contained in no other
+- An empty value ``. This will match any value of teh crieterion variable.
+- The special value "unknown" `~`. This matches any value contained in no other
   matching value of the directory `selectable/` for that criterion.
 
 Note: the matching value `bzsh` is special and expands to `bzsh,bash,zsh`.
@@ -101,7 +101,7 @@ There must be as many matching values in a file basename as there are criteria
 in the path which comes before it. Futhermore, the order of the criteria in the
 path and of the matching values in the filename must match, with one exception:
 
-* If there are no criterion in the directory path of a file, but there are
+- If there are no criterion in the directory path of a file, but there are
   matching values in it's name, the matching values will be matched against any
   of the available criterion values.
   In the case of that exception, the matching value `~` cannot be used in the
@@ -142,8 +142,11 @@ The following files won't be matched:
 selectable/perShell_sh.d/alias_zsh.sh
 ```
 
-The following path are badly constructed and cannot be matched in any situation:
+The following paths are badly constructed and cannot be matched in any situation:
 
 ```txt
-selectable
+selectable/dir/script.sh
+selectable/dir.d/script_bash.sh
+selectable/dir_sh.d/script.sh
+selectable/dir_sh.d/script_bash
 ```

@@ -196,13 +196,13 @@ def sortkey(path):
     return numericList
 
 
-def sourcing(env, selectable):
-    wellNamedList = list(walk(env, selectable, []))
+def sourcing(env, directoryList):
+    wellNamedList = [entry for di in directoryList for entry in walk(env, di, [])]
     propertyIndex = index(wellNamedList)
     willSource = list(examine(env, wellNamedList, propertyIndex))
     willSource.sort(key = sortkey)
 
-    sourcePattern = "source %s\n"
+    sourcePattern = "source %s   \n"
     if env.sh == "dash":
         sourcePattern = ". %s\n"
 
