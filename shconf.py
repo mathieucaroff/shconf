@@ -23,10 +23,18 @@ argument(
 The name of the shell which will eval the output. It is also used \
 as the 'sc_shell' variable and to match shell files to be sourced."""
 )
+argument(
+    "-u", "--user", help="""\
+The name of the user to be used to dermine which files should be sourced, and \
+to set the `sc_user` variable."""
+)
 
 args = parser.parse_args()
 
-env = getenv.getenv(args.shell)
+env = getenv.getenv(
+    user=args.user,
+    sh=args.shell,
+)
 sys.stdout.write(env.setenv)
 
 sourcing = sourcing.sourcing(

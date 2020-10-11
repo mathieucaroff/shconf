@@ -1,5 +1,5 @@
 class Env:
-    __slots__ = "rootDir os pm dist sh host remote root sudo init".split()
+    __slots__ = "rootDir os pm dist sh host remote root sudo user init".split()
     __slots__.extend("setenv".split())
 
     def selectPropertyList(self, pnameList):
@@ -11,7 +11,7 @@ class Env:
         return self.selectPropertyList(self.__slots__)
 
 
-def getenv(sh=None):
+def getenv(user=None, sh=None):
     import re
     import os
     import socket
@@ -66,8 +66,6 @@ def getenv(sh=None):
         return name
 
     def getsudo():
-        import pwd
-        user = pwd.getpwuid(os.getuid()).pw_name
         try:
             with open("/etc/group") as f:
                 for l in f:
@@ -78,8 +76,19 @@ def getenv(sh=None):
             pass
         return False
 
+    def getuser():
+        import pwd
+        user = pwd.getpwuid(os.getuid()).pw_name
+        return user
+
     ekeys = os.environ.keys()
     ppname = getpname(os.getppid())
+
+    if user is None:
+        user = getuser()
+
+    if sh is None:
+        sh = getsh(ppname)
 
     e = Env()
 
@@ -88,7 +97,8 @@ def getenv(sh=None):
     e.os = getos().lower()
     e.pm = getpm()
     e.dist = getdist().lower()
-    e.sh = (sh or getsh(ppname)).lower()
+    e.user = user.lower()
+    e.sh = sh.lower()
     e.host = socket.gethostname().lower()
     e.remote = "remote" if (
         "SSH_CLIENT" in ekeys or
