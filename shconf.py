@@ -31,14 +31,25 @@ to set the `sc_user` variable."""
 
 args = parser.parse_args()
 
-env = getenv.getenv(
-    user=args.user,
-    sh=args.shell,
-)
-sys.stdout.write(env.setenv)
+env = getenv.Env()
+try:
+    getenv.getenv(
+        env=env,
+        user=args.user,
+        sh=args.shell,
+    )
+    sys.stdout.write(env.setenv)
+except:
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    import traceback
+    traceback.print_exception(
+        exc_type, exc_value, exc_traceback,
+        limit=2,
+        file=sys.stderr,
+    )
 
 sourcing = sourcing.sourcing(
     env=env,
-    directoryList=args.directory
+    directoryList=args.directory,
 )
 sys.stdout.write(sourcing)

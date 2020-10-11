@@ -62,7 +62,7 @@ def addCriteria(env, slotList, ff, criteria):
         if (crit in criteria):
             msg = "The criterion `{}` appears twice in the chain `{}`\n"
             sys.stderr.write(msg.format(crit, ff))
-        elif (crit not in env.__slots__):
+        elif (crit not in env.criterionList):
             msg = "The criterion `{}`, in your directory `{}` is invalid\n"
             sys.stderr.write(msg.format(crit, ff))
         else:

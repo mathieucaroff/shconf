@@ -1,6 +1,9 @@
 class Env:
-    __slots__ = "rootDir os pm dist sh host remote root sudo user init".split()
-    __slots__.extend("setenv".split())
+    criterionList = "rootDir os pm dist sh host remote root sudo user init".split()
+
+    def __init__(self):
+        for criterion in self.criterionList:
+            setattr(self, criterion, "")
 
     def selectPropertyList(self, pnameList):
         return tuple(
@@ -8,10 +11,39 @@ class Env:
         )
     
     def fullPropertyList(self):
-        return self.selectPropertyList(self.__slots__)
+        return self.selectPropertyList(self.criterionList)
+
+    @property
+    def setenv(self):
+        def gen(export=False, **kwargs):
+            if export:
+                if self.sh[-3:] == "csh":
+                    fmt = "setenv sc_{key} '{value}'\n"
+                else:
+                    fmt = "export sc_{key}='{value}'\n"
+            else:
+                fmt = "sc_{key}='{value}'\n"
+            key, value = list(kwargs.items())[0]
+            return fmt.format(
+                key=key,
+                value=value,
+            )
+
+        return "".join((
+            gen(rootDir=self.rootDir),
+            gen(os=self.os),
+            gen(pm=self.pm),
+            gen(dist=self.dist),
+            gen(sh=self.sh),
+            gen(host=self.host),
+            gen(remote=self.remote),
+            gen(root=self.root),
+            gen(sudo=self.sudo),
+            gen(init=self.init, export=True),
+        ))
 
 
-def getenv(user=None, sh=None):
+def getenv(user=None, sh=None, env=None):
     import re
     import os
     import socket
@@ -90,7 +122,10 @@ def getenv(user=None, sh=None):
     if sh is None:
         sh = getsh(ppname)
 
-    e = Env()
+    if env is None:
+        env = Env()
+
+    e = env
 
     e.rootDir = os.path.dirname(__file__)
 
@@ -109,32 +144,5 @@ def getenv(user=None, sh=None):
     e.root = "root" if (os.geteuid() == 0) else "user"
     e.sudo = "sudo" if getsudo() else "nosudo"
     e.init = "noinit" if "sc_init" in os.environ.keys() else "init"
-
-    def gen(export=False, **kwargs):
-        if export:
-            if e.sh[-3:] == "csh":
-                fmt = "setenv sc_{key} '{value}'\n"
-            else:
-                fmt = "export sc_{key}='{value}'\n"
-        else:
-            fmt = "sc_{key}='{value}'\n"
-        key, value = list(kwargs.items())[0]
-        return fmt.format(
-            key=key,
-            value=value,
-        )
-
-    e.setenv = "".join((
-        gen(rootDir=e.rootDir),
-        gen(os=e.os),
-        gen(pm=e.pm),
-        gen(dist=e.dist),
-        gen(sh=e.sh),
-        gen(host=e.host),
-        gen(remote=e.remote),
-        gen(root=e.root),
-        gen(sudo=e.sudo),
-        gen(init=e.init, export=True),
-    ))
 
     return e

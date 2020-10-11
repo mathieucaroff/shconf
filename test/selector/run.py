@@ -19,6 +19,7 @@ e.remote = "local"
 e.root = "user"
 e.sudo = "sudo"
 e.init = "init"
+e.user = "ox"
 
 selectable = sys.argv[1]
 
