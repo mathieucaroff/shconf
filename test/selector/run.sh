@@ -1,3 +1,9 @@
+if [ -z "$tmpdir" ]; then
+  exit 5
+fi
+
+echo "tmpdir: $tmpdir"
+
 # so:/a/23673883/2514354
 join() {
     # $1 is sep
@@ -22,29 +28,42 @@ join() {
 # echo total-count: $totalcount
 # ^ Never run
 
-read -rd$'\e' check_py << HereDocumentDelimiter
+read -rd$'\e' check_dot_py << HereDocumentDelimiter
 import sys
 
-yesSet={"source " + s for s in ("$(join '", "' ${yes[@]})")}
-noSet ={"source " + s for s in ("$(join '", "' ${no[@]} )")}
+yesSet= {"source " + s for s in ("$(join '", "' ${yes[@]})")} - set([""])
+noSet = {"source " + s for s in ("$(join '", "' ${no[@]} )")}
 
 assert yesSet & noSet == set(), "yesSet & noSet: %s" % (yesSet & noSet)
 
-testSet=set(sys.stdin.read().split("\n"))
+pathInput = sys.argv[1].strip()
+pathList = pathInput.split("\n")
+pathSet = set(pathList)
 
-if testSet != yesSet | {""}:
-    print("ERROR: testSet != yesSet")
-    print("ts - ys:")
-    print("\n".join(testSet - yesSet))
-    print("")
-    print("ys - ts: %s")
-    print("\n".join(yesSet - testSet))
+if len(pathList) < 4:
+    print("pathInput:\n{}\n".format(pathInput))
+
+if len(pathSet) == 0 and len(yesSet) > 0:
+    print("ERROR: pathSet is empty")
     sys.exit(2)
-assert testSet & noSet == set(), "testSet & noSet: %s" % (testSet & noSet)
+elif pathSet != yesSet:
+    fpositive = pathSet - yesSet
+    fnegative = yesSet - pathSet
+    print("ERROR: pathSet != yesSet")
+    print("result - wanted (false positive) ({}):".format(len(fpositive)))
+    print("\n".join(fpositive))
+    print("")
+    print("wanted - result (false negative) ({}):".format(len(fnegative)))
+    print("\n".join(fnegative))
+    sys.exit(2)
+assert pathSet & noSet == set(), "pathSet & noSet: %s" % (pathSet & noSet)
 
 print("1 test OK")
 
 HereDocumentDelimiter
 
-python "$sc_root_dir"/selector-test.py "$tmpdir" \
-| python <(echo "${check_py}") | sed s:"$tmpdir":'$t':g
+read -rd$'\e' output <<< "$(python "$sc_root_dir"/selector-test.py "$tmpdir")"
+
+echo Result check:
+
+python <(echo "${check_dot_py}") "$output" | sed s:"$tmpdir":'$t':g

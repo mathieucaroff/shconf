@@ -8,7 +8,6 @@ class Env(getenv.Env):
 e = Env()
 
 e.rootDir = ""
-e.setenv = ""
 
 e.os = "linux"
 e.pm = "apt"
@@ -22,6 +21,6 @@ e.init = "init"
 e.user = "ox"
 
 selectable = sys.argv[1]
+sourcetext = sourcing.sourcing(env=e, directoryList=[selectable])
 
-sourcetext = sourcing.sourcing(e, selectable)
 sys.stdout.write(sourcetext)

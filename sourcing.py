@@ -84,7 +84,7 @@ WellNamed = namedtuple("WellNamed", "filepath slotList criteria")
 
 def walk(env, dirpath, criteria):
     """
-    Walk all well-formed directory to establish a list of files which
+    Walk all well-formed directories to establish a list of files which
     respect the naming convention (a "well named" file).
     Return a list of namedtuples("filepath criteria").
     """
@@ -105,7 +105,6 @@ def walk(env, dirpath, criteria):
                     ff_criteria = addCriteria(env, slotList, ff, criteria)
                 except ValueError:
                     continue # i.e. do not walk into that directory.
-                #print("willExtend with:\n:ff: %s\n:ff_cr: %s" % (ff, ff_criteria))
                 for e in walk(env, ff, ff_criteria):
                     yield e
 
@@ -202,7 +201,7 @@ def sourcing(env, directoryList):
     willSource = list(examine(env, wellNamedList, propertyIndex))
     willSource.sort(key = sortkey)
 
-    sourcePattern = "source %s   \n"
+    sourcePattern = "source %s\n"
     if env.sh == "dash":
         sourcePattern = ". %s\n"
 
